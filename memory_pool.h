@@ -102,3 +102,43 @@ private:
         return static_cast<FreeNode *>(p);
     }
 };
+
+
+class MiMemoryPool
+{
+public:
+    static void* alloc(size_t size) {
+        // align to kClassGrid
+        size = MemoryPool::idx(size) * MemoryPool::kClassGrid;
+
+        // allocate from system if size is too large
+        if (size > MemoryPool::kMaxSmallSize) {
+            return ::operator new(size);
+        }
+        FreeNode* ptr = tls_cache().alloc(size, globalPool_);
+
+        return static_cast<void*>(ptr);
+    }
+
+    static void free(void* ptr, size_t size) {
+        if (ptr == nullptr) return;
+
+        size = MemoryPool::idx(size) * MemoryPool::kClassGrid;
+        if (size > MemoryPool::kMaxSmallSize) {
+            ::operator delete(ptr);
+            return;
+        }
+
+        tls_cache().free(static_cast<FreeNode*>(ptr), size);
+    }
+
+private:
+    static GlobalPool globalPool_;
+
+    // allocate thread local storage cache
+    static ThreadCache& tls_cache() {
+        thread_local ThreadCache cache;
+        return cache;
+    }
+};
+
