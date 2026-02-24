@@ -6,6 +6,8 @@ cmake_minimum_required(VERSION 3.26)
 # state project
 project(mi_memory_pool VERSION 0.1 LANGUAGES CXX)
 
+set(CMAKE_CXX_STANDARD 17)
+
 # print message
 message(STATUS "Cmake building...")
 

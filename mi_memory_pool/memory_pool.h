@@ -6,7 +6,7 @@
 
 namespace MemoryPool
 {
-    static constexpr size_t kMaxSmallSize = 128;
+    static constexpr size_t kMaxSmallSize = 128;  // Byte
     static constexpr size_t kClassGrid = 16;
     static constexpr size_t kNumClasses = kMaxSmallSize / kClassGrid;
     static constexpr size_t kFetchTime = 32;
@@ -51,17 +51,8 @@ private:
 class GlobalPool
 {
 public:
-    FreeNode* alloc(size_t size) {
-        std::lock_guard<std::mutex> lock(mtx_);  // RAII
-        FreeList& list = pool_[MemoryPool::idx(size)];
-        if (list.empty()) return nullptr;
-        return list.pop();
-    }
-
-    void free(FreeNode* node, size_t size) {
-        std::lock_guard<std::mutex> lock(mtx_);
-        pool_[MemoryPool::idx(size)].push(node);
-    }
+    FreeNode* alloc(size_t size);
+    void free(FreeNode* node, size_t size);
 
 private:
     FreeList pool_[MemoryPool::kNumClasses];
@@ -72,73 +63,26 @@ private:
 class ThreadCache
 {
 public:
-
-    FreeNode* alloc(size_t size, GlobalPool& globalPool) {
-        FreeList& list = freelists_[MemoryPool::idx(size)];
-        if (!list.empty()) return list.pop();
-
-        // else allocate from GlobalPool
-        for (size_t i = 0; i < MemoryPool::kFetchTime; i++) {
-            if (FreeNode* node = globalPool.alloc(size)) {
-                list.push(node);
-            } else {
-                // system alloc
-                list.push(sys_alloc(size));
-            }
-        }
-
-        return list.pop();
-    }
-
-    void free(FreeNode* node, size_t size) {
-        freelists_[MemoryPool::idx(size)].push(node);
-    }
+    FreeNode* alloc(size_t size, GlobalPool& globalPool);
+    void free(FreeNode* node, size_t size);
 
 private:
     FreeList freelists_[MemoryPool::kNumClasses];
-
-    static FreeNode* sys_alloc(size_t size) {
-        void *p = ::operator new(size);
-        return static_cast<FreeNode *>(p);
-    }
+    static FreeNode* sys_alloc(size_t size);
 };
 
 
 class MiMemoryPool
 {
 public:
-    static void* alloc(size_t size) {
-        // align to kClassGrid
-        size = MemoryPool::idx(size) * MemoryPool::kClassGrid;
-
-        // allocate from system if size is too large
-        if (size > MemoryPool::kMaxSmallSize) {
-            return ::operator new(size);
-        }
-        FreeNode* ptr = tls_cache().alloc(size, globalPool_);
-
-        return static_cast<void*>(ptr);
-    }
-
-    static void free(void* ptr, size_t size) {
-        if (ptr == nullptr) return;
-
-        size = MemoryPool::idx(size) * MemoryPool::kClassGrid;
-        if (size > MemoryPool::kMaxSmallSize) {
-            ::operator delete(ptr);
-            return;
-        }
-
-        tls_cache().free(static_cast<FreeNode*>(ptr), size);
-    }
+    static void* alloc(size_t size);
+    static void free(void* ptr, size_t size);
 
 private:
     static GlobalPool globalPool_;
 
     // allocate thread local storage cache
-    static ThreadCache& tls_cache() {
-        thread_local ThreadCache cache;
-        return cache;
-    }
+    static ThreadCache& tls_cache();
 };
 
+inline GlobalPool MiMemoryPool::globalPool_;
