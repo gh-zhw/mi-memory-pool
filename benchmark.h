@@ -9,7 +9,7 @@
 #include "mi_memory_pool/memory_pool.h"
 
 
-static constexpr size_t _kOps = 100'000;
+static constexpr size_t _kOps = 1000'000;
 static constexpr size_t _kThreads = 8;
 
 template <typename T>
@@ -40,12 +40,6 @@ struct MiPool
 template <typename AllocFunc, typename FreeFunc>
 double single_thread_test(size_t size, int iterations, AllocFunc alloc, FreeFunc free)
 {
-    for (int i = 0; i < WARMUP_ITERATIONS; ++i) {
-        void* p = alloc(size);
-        do_not_optimize(p);
-        free(p, size);
-    }
-    
     auto start = std::chrono::high_resolution_clock::now();
     for (size_t i = 0; i < iterations; i++) {
         void* p = alloc(size);

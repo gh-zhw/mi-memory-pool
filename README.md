@@ -1,4 +1,61 @@
 # mi-memory-pool
+
 A high-performance memory pool library inspired by Microsoft's mimalloc.
 
 Refer to https://github.com/Awesome-Embedded-Learning-Studio/Project_MakeAMemroyPool.git.
+
+## Build and Run Benchmark
+
+To build and run the benchmark, execute the following commands:
+
+```bash
+cmake -B ./build -S .
+
+cd ./build
+
+make -j4
+
+./benchmark
+```
+
+
+## Benchmark results
+
+| Allocator   | Size | Threads | Time(s)       | Throughput(ops/s) |
+|-------------|------|---------|---------------|-------------------|
+| malloc/free | 8    | 1       | 0.0129551 s   | 7.71894e+07 ops/s |
+| new/delete  | 8    | 1       | 0.0127596 s   | 7.83721e+07 ops/s |
+| MiMemoryPool| 8    | 1       | 0.00714819 s  | 1.39896e+08 ops/s |
+| malloc/free | 16   | 1       | 0.0100054 s   | 9.99457e+07 ops/s |
+| new/delete  | 16   | 1       | 0.0121363 s   | 8.23977e+07 ops/s |
+| MiMemoryPool| 16   | 1       | 0.00733683 s  | 1.36299e+08 ops/s |
+| malloc/free | 32   | 1       | 0.00994696 s  | 1.00533e+08 ops/s |
+| new/delete  | 32   | 1       | 0.0133276 s   | 7.50322e+07 ops/s |
+| MiMemoryPool| 32   | 1       | 0.0105815 s   | 9.45041e+07 ops/s |
+| malloc/free | 64   | 1       | 0.0142601 s   | 7.01259e+07 ops/s |
+| new/delete  | 64   | 1       | 0.0121829 s   | 8.20822e+07 ops/s |
+| MiMemoryPool| 64   | 1       | 0.00716795 s  | 1.3951e+08 ops/s  |
+| malloc/free | 128  | 1       | 0.0122183 s   | 8.18444e+07 ops/s |
+| new/delete  | 128  | 1       | 0.0205336 s   | 4.87007e+07 ops/s |
+| MiMemoryPool| 128  | 1       | 0.0127326 s   | 7.85384e+07 ops/s |
+| malloc/free | 256  | 1       | 0.0100729 s   | 9.9276e+07 ops/s  |
+| new/delete  | 256  | 1       | 0.0124132 s   | 8.05594e+07 ops/s |
+| MiMemoryPool| 256  | 1       | 0.0139918 s   | 7.14703e+07 ops/s |
+| malloc/free | 8    | 8       | 0.0883565 s   | 1.13178e+07 ops/s |
+| new/delete  | 8    | 8       | 0.131198 s    | 7.6221e+06 ops/s  |
+| MiMemoryPool| 8    | 8       | 0.110934 s    | 9.01441e+06 ops/s |
+| malloc/free | 16   | 8       | 0.214919 s    | 4.65293e+06 ops/s |
+| new/delete  | 16   | 8       | 0.118574 s    | 8.43356e+06 ops/s |
+| MiMemoryPool| 16   | 8       | 0.070852 s    | 1.41139e+07 ops/s |
+| malloc/free | 32   | 8       | 0.127535 s    | 7.84096e+06 ops/s |
+| new/delete  | 32   | 8       | 0.145473 s    | 6.87411e+06 ops/s |
+| MiMemoryPool| 32   | 8       | 0.0765159 s   | 1.30692e+07 ops/s |
+| malloc/free | 64   | 8       | 0.0957102 s   | 1.04482e+07 ops/s |
+| new/delete  | 64   | 8       | 0.110056 s    | 9.08625e+06 ops/s |
+| MiMemoryPool| 64   | 8       | 0.0948291 s   | 1.05453e+07 ops/s |
+| malloc/free | 128  | 8       | 0.17096 s     | 5.84934e+06 ops/s |
+| new/delete  | 128  | 8       | 0.207437 s    | 4.82073e+06 ops/s |
+| MiMemoryPool| 128  | 8       | 0.124867 s    | 8.0085e+06 ops/s  |
+| malloc/free | 256  | 8       | 0.109948 s    | 9.09517e+06 ops/s |
+| new/delete  | 256  | 8       | 0.116005 s    | 8.62035e+06 ops/s |
+| MiMemoryPool| 256  | 8       | 0.123076 s    | 8.12508e+06 ops/s |

@@ -16,17 +16,36 @@ void GlobalPool::free(FreeNode* node, size_t size) {
     pool_[MemoryPool::idx(size)].push(node);
 }
 
+void GlobalPool::free_batch(FreeNode* node, size_t size) {
+    size_t idx = MemoryPool::idx(size);
+    std::lock_guard<std::mutex> lock(mtx_);
+    while (node) {
+        FreeNode* next = node->next;
+        pool_[idx].push(node);
+        node = next;
+    }
+}
+
+GlobalPool::~GlobalPool() {
+    for (size_t i = 0; i < MemoryPool::kNumClasses; ++i) {
+        while (!pool_[i].empty()) {
+            FreeNode* node = pool_[i].pop();
+            ::operator delete(node);
+        }
+    }
+}
+
 
 /*
     ThreadCache
  */
-FreeNode* ThreadCache::alloc(size_t size, GlobalPool& globalPool) {
+FreeNode* ThreadCache::alloc(size_t size) {
     FreeList& list = freelists_[MemoryPool::idx(size)];
     if (!list.empty()) return list.pop();
 
-    // else allocate from GlobalPool
     for (size_t i = 0; i < MemoryPool::kFetchTime; i++) {
-        if (FreeNode* node = globalPool.alloc(size)) {
+        // else allocate from GlobalPool
+        if (FreeNode* node = globalPool_.alloc(size)) {
             list.push(node);
         } else {
             // system alloc
@@ -38,7 +57,22 @@ FreeNode* ThreadCache::alloc(size_t size, GlobalPool& globalPool) {
 }
 
 void ThreadCache::free(FreeNode* node, size_t size) {
-    freelists_[MemoryPool::idx(size)].push(node);
+    auto& list = freelists_[MemoryPool::idx(size)];
+
+    // return to GlobalPool
+    // if (list.size() >= MemoryPool::kMaxLocalFreeList)
+    //     globalPool_.free(node, size);
+    // else
+    list.push(node);
+}
+
+ThreadCache::~ThreadCache() {
+    for (size_t i = 0; i < MemoryPool::kNumClasses; ++i) {
+        if (!freelists_[i].empty()) {
+            size_t size = (i + 1) * MemoryPool::kClassGrid;
+            globalPool_.free_batch(freelists_[i].head(), size);
+        }
+    }
 }
 
 FreeNode* ThreadCache::sys_alloc(size_t size) {
@@ -58,7 +92,7 @@ void* MiMemoryPool::alloc(size_t size) {
     if (size > MemoryPool::kMaxSmallSize) {
         return ::operator new(size);
     }
-    FreeNode* ptr = tls_cache().alloc(size, globalPool_);
+    FreeNode* ptr = tls_cache().alloc(size);
 
     return static_cast<void*>(ptr);
 }
@@ -76,6 +110,6 @@ void MiMemoryPool::free(void* ptr, size_t size) {
 }
 
 ThreadCache& MiMemoryPool::tls_cache() {
-    thread_local ThreadCache cache;
+    thread_local ThreadCache cache(globalPool_);
     return cache;
 }

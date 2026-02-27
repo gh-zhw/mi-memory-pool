@@ -10,8 +10,10 @@ namespace MemoryPool
     static constexpr size_t kClassGrid = 16;
     static constexpr size_t kNumClasses = kMaxSmallSize / kClassGrid;
     static constexpr size_t kFetchTime = 32;
+    // static constexpr size_t kMaxLocalFreeList = 256;
+    // static constexpr size_t kMaxGlobalFreeList = 1024;
 
-    inline size_t idx(size_t sz) {
+    inline constexpr size_t idx(size_t sz) {
         size_t aligned = (sz + kClassGrid - 1) / kClassGrid;
         if (aligned == 0) aligned = 1;
         return aligned - 1;
@@ -27,32 +29,42 @@ struct FreeNode
 class FreeList
 {
 public:
-    FreeList() { head = nullptr; }
+    FreeList() : head_(nullptr), size_(0) {}
 
     void push(FreeNode *node) {
         // head insertion
-        node->next = head;
-        head = node;
+        node->next = head_;
+        head_ = node;
+        ++size_;
     }
 
     FreeNode* pop() {
-        FreeNode *ret = head;
-        head = head->next;
+        if (head_ == nullptr)
+            return nullptr;
+
+        FreeNode *ret = head_;
+        head_ = head_->next;
+        --size_;
         return ret;
     }
 
-    bool empty() { return head == nullptr; }
+    bool empty() const { return head_ == nullptr; }
+    size_t size() const { return size_; }
+    FreeNode* head() const { return head_; }
 
 private:
-    FreeNode *head;
+    FreeNode* head_;
+    size_t size_;
 };
 
 
 class GlobalPool
 {
 public:
+    ~GlobalPool();
     FreeNode* alloc(size_t size);
     void free(FreeNode* node, size_t size);
+    void free_batch(FreeNode* node, size_t size);
 
 private:
     FreeList pool_[MemoryPool::kNumClasses];
@@ -63,11 +75,14 @@ private:
 class ThreadCache
 {
 public:
-    FreeNode* alloc(size_t size, GlobalPool& globalPool);
+    explicit ThreadCache(GlobalPool& globalPool) : globalPool_(globalPool) {}
+    ~ThreadCache();
+    FreeNode* alloc(size_t size);
     void free(FreeNode* node, size_t size);
 
 private:
     FreeList freelists_[MemoryPool::kNumClasses];
+    GlobalPool& globalPool_;
     static FreeNode* sys_alloc(size_t size);
 };
 

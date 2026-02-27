@@ -3,7 +3,7 @@
 #include "./benchmark.h"
 
 
-const std::vector<size_t> SIZES = {8, 16, 32, 64, 128, 256, 512, 1024};
+const std::vector<size_t> SIZES = {8, 16, 32, 64, 128, 256};
 
 void print_result(const std::string& name, size_t size, double seconds, int ops, int threads) {
     double throughput = ops / seconds;
